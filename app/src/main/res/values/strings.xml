@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">GeographicStory</string>
+    <string name="action_settings">Settings</string>
+    <string name="current_position">Current Position</string>
+    <string name="play_button">Play</string>
+    <string name="record_button">Record</string>
+</resources>
