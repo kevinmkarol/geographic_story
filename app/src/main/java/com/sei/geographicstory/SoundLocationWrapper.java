@@ -5,25 +5,30 @@ package com.sei.geographicstory;
  */
 public class SoundLocationWrapper {
     private String fileName;
-    private String partOfSpeech;
+    //private String partOfSpeech;
     private String filePath;
     private Integer mSoundId;
     private boolean mIsDirty;
-    private boolean soundHasPlayed;
+    private boolean soundPlayed;
 
     public SoundLocationWrapper(String filePath, String fileName){
         this.fileName = fileName;
         this.filePath = filePath;
         this.mIsDirty = false;
+        soundPlayed = false;
     }
 
     public String getFileName() {
         return fileName;
     }
 
-    public String getPartOfSpeech() {
+    /**public String getPartOfSpeech() {
         return partOfSpeech;
     }
+
+     public void setPartOfSpeech(String partOfSpeech) {
+     this.partOfSpeech = partOfSpeech;
+     }**/
 
     public boolean isDirty(){
         return  mIsDirty;
@@ -37,11 +42,19 @@ public class SoundLocationWrapper {
         return mSoundId;
     }
 
-    public void setPartOfSpeech(String partOfSpeech) {
-        this.partOfSpeech = partOfSpeech;
+    public boolean getSoundPlayed(){
+        return soundPlayed;
+    }
+
+    public void setSoundPlayed(boolean played){
+        this.soundPlayed = played;
     }
 
     public void setmSoundId(Integer mSoundId) {
         this.mSoundId = mSoundId;
+    }
+
+    public void setIsDirty(boolean isDirty){
+        this.mIsDirty = isDirty;
     }
 }

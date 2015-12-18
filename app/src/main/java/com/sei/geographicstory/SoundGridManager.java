@@ -6,7 +6,10 @@ import android.util.Log;
 
 import com.sei.geographicstory.location.GridSquare;
 
+import org.apache.http.client.HttpClient;
+
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -23,6 +26,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by Kevin on 12/16/15.
@@ -31,15 +36,16 @@ public class SoundGridManager {
     private static SoundGridManager singleton = new SoundGridManager();
 
     //File upload and download constants
-    private static String FILE_UPLOAD_URL = "http://kevinmkarol.com:1217";
-    private static String FILE_DOWNLOAD_URL_BASE = "http://kevinmkarol.com:1217";
+    private static String FILE_UPLOAD_URL = "http://kevinmkarol.com:1217/FileUploader/uploadMP3";
+    private static String FILE_DOWNLOAD_URL_BASE = "http://kevinmkarol.com:1217/FileUploader/downloadMP3/";
     private static String lineEnd = "\r\n";
     private static String twoHyphens = "--";
     private static String boundary = "AaB03x87yxdkjnxvi7";
+    private static String name = "geoMP3";
 
     //Internal Grid Information
     private ArrayList<ArrayList<GridSquare>> currentSoundGrid;
-    private static final int gridSize = 10;
+    private static final int gridSize = 10; //Must be even
     private int currentXIndex;
     private int currentYIndex;
 
@@ -68,7 +74,7 @@ public class SoundGridManager {
 
     public static SoundGridManager getInstance(){return singleton;}
 
-    public void performActionForLocation(GridSquare square){
+    public void performActionForLocation(final GridSquare square){
         findSquareInGrid(square);
         //Next update will cause the action to be performed
         if(currentXIndex != -1 && currentYIndex != -1) {
@@ -76,21 +82,33 @@ public class SoundGridManager {
                     .get(currentXIndex).getSoundWrapper();
 
             Random rand = new Random();
-
             int randomNum = rand.nextInt(randomRange);
 
             //Determine what action to perform for square
-            if (soundAtSquare.getmSoundId() == null || randomNum < oddsOfNewWord) {
+            File possibleSoundFile = new File(soundAtSquare.getFilePath());
+            File parentDir = new File("/data/data/com.sei.geographicstory/files/");
+            for(String fileName : parentDir.list()){
+                    Log.d("FileName", fileName);
+            }
+
+            if(!possibleSoundFile.exists()){ //|| randomNum < oddsOfNewWord) {
                 ActionCoordinator.getInstance().recordSoundForSquare(soundAtSquare);
             } else {
                 ActionCoordinator.getInstance().playSoundForSquare(soundAtSquare);
             }
+        }else{
+            /**new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    performActionForLocation(square);
+                }
+            }, 1000);**/
         }
     }
 
     private void updateSquare(int xCord, int yCord, SoundLocationWrapper wrapper, Location location){
-        currentSoundGrid.get(yCord).get(xCord).setSoundWrapper(wrapper);
         currentSoundGrid.get(yCord).get(xCord).setLocation(location);
+        currentSoundGrid.get(yCord).get(xCord).setSoundWrapper(wrapper);
     }
 
 
@@ -115,17 +133,18 @@ public class SoundGridManager {
         //If the square doesn't exist in the current grid, download next grid of sounds
         if(currentXIndex == -1 && currentYIndex == -1){
             uploadDirtySoundFiles();
-            downloadGridAtLocation(square.getLocation());
+            downloadGridAtLocation(square);
         }
     }
 
-    private void uploadDirtySoundFiles(){
+    //make this private again after testing
+    public void uploadDirtySoundFiles(){
         for(int i = 0; i < gridSize; i++){
             for(int j = 0; j < gridSize; j++){
                 SoundLocationWrapper wrapper = currentSoundGrid.get(i).get(j).getSoundWrapper();
                 if(wrapper != null && wrapper.isDirty()){
                     try {
-                        uploadFile(wrapper.getFilePath());
+                        uploadFile(wrapper);
                     }catch(IOException e){
                         e.printStackTrace();
                     }
@@ -136,86 +155,69 @@ public class SoundGridManager {
 
 
     /* code adapted from http://stackoverflow.com/questions/4966910/androidhow-to-upload-mp3-file-to-http-server*/
-    private void uploadFile(String path) throws IOException{
-        HttpURLConnection conn = null;
-        DataOutputStream dos = null;
-        DataInputStream dis = null;
-        FileInputStream fileInputStream = null;
+    private void uploadFile(SoundLocationWrapper wrapper) throws IOException{
+        new UploadFileAsync().execute(wrapper);
+    }
 
-        byte[] buffer;
-        int maxBufferSize = 20 * 1024;
-        try {
-            //------------------ CLIENT REQUEST
-            File f = new File(path);
-            fileInputStream = new FileInputStream(f);
+    private class UploadFileAsync extends AsyncTask<SoundLocationWrapper, String, Void>{
 
-            // open a URL connection to the Servlet
-            // Open a HTTP connection to the URL
-            URL url = new URL(FILE_UPLOAD_URL);
-            conn = (HttpURLConnection) url.openConnection();
-            // Allow Inputs
-            conn.setDoInput(true);
-            // Allow Outputs
-            conn.setDoOutput(true);
-            // Don't use a cached copy.
-            conn.setUseCaches(false);
-            // Use a post method.
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
 
-            dos = new DataOutputStream(conn.getOutputStream());
+        @Override
+        protected Void doInBackground(SoundLocationWrapper... params){
 
-            dos.writeBytes(twoHyphens + boundary + lineEnd);
-            dos.writeBytes("Content-Disposition: form-data"//; name=\"" + fileParameterName
-                    + "\"; filename=\"" + f.toString() + "\"" + lineEnd);
-            dos.writeBytes("Content-Type: text/xml" + lineEnd);
-            dos.writeBytes(lineEnd);
+            SoundLocationWrapper wrapper = params[0];
+            String path = wrapper.getFilePath();
+            FileInputStream fileInputStream = null;
+            HttpURLConnection conn = null;
+            DataInputStream dis = null;
+            DataOutputStream dos = null;
 
-            // create a buffer of maximum size
-            buffer = new byte[Math.min((int) f.length(), maxBufferSize)];
-            int length;
-            // read file and write it into form...
-            while ((length = fileInputStream.read(buffer)) != -1) {
-                dos.write(buffer, 0, length);
+            try {
+                File f = new File(path);
+
+                fileInputStream = new FileInputStream(f);
+
+                //this wouldn't be a good idea of files weren't known to be very small
+                byte fileContent[] = new byte[(int) f.length()];
+                fileInputStream.read(fileContent);
+
+                URL url = new URL(FILE_UPLOAD_URL);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestProperty("User-Agent", "");
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+                conn.setDoInput(true);
+                conn.connect();
+
+                dos = new DataOutputStream(conn.getOutputStream());
+                dos.writeBytes(twoHyphens + boundary + lineEnd);
+                dos.writeBytes("Content-Disposition: form-data; name=\"" + name
+                               + "\";filename=\"" + wrapper.getFileName() + "\"" + lineEnd );
+                dos.writeBytes(lineEnd);
+                dos.write(fileContent);
+                dos.writeBytes(lineEnd);
+                dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+
+                dos.flush();
+                dos.close();
+
+                //read response to send data
+                dis = new DataInputStream(conn.getInputStream());
+
+
+            }catch(Exception e){
+                e.printStackTrace();
+            }finally {
+                if(conn != null){
+                    conn.disconnect();
+                }
             }
 
-            // send multipart form data necessary after file data...
-            dos.writeBytes(lineEnd);
-            dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
-            dos.flush();
-        }catch (FileNotFoundException e){
-            e.printStackTrace();
-        }catch(ProtocolException e){
-            e.printStackTrace();
-        }catch(MalformedURLException e){
-            e.printStackTrace();
-        }
-
-        finally {
-            if (fileInputStream != null) fileInputStream.close();
-            if (dos != null) dos.close();
-        }
-
-        //------------------ read the SERVER RESPONSE
-        try {
-            dis = new DataInputStream(conn.getInputStream());
-            StringBuilder response = new StringBuilder();
-
-            String line;
-            while ((line = dis.readLine()) != null) {
-                response.append(line).append('\n');
-            }
-
-
-            Log.d("File Upload Response:", response.toString());
-        } finally {
-            if (dis != null) dis.close();
+            return null;
         }
     }
 
-    private void downloadGridAtLocation(Location l){
-        GridSquare centeralSquare = new GridSquare();
-        centeralSquare.setLocation(l);
+    private void downloadGridAtLocation(GridSquare square){
         for(int i = 0; i < gridSize; i++){
             for(int j = 0; j < gridSize; j++){
                 //Delete old sound files
@@ -225,27 +227,29 @@ public class SoundGridManager {
                     file.delete();
                 }
 
+                int longitudeOffset = gridSize/2 - i;
+                int lattitudeOffset = gridSize/2 - j;
+                GridSquare updatedSquare = square.getSquareAtOffset(longitudeOffset, lattitudeOffset);
+
                 //Download new soundfiles
-                String fileName =  Double.toString(l.getLatitude()) + Double.toString(l.getLongitude());
+                String fileName =  updatedSquare.getStringRepresentation();
                 File writeFile = new File(ActionCoordinator.getInstance().getAppContext().getFilesDir(), fileName);
                 SoundLocationWrapper downloadedSound = new SoundLocationWrapper(writeFile.getAbsolutePath(), fileName);
 
-                new DownloadFileAsync().execute(downloadedSound);
+                updatedSquare.setSoundWrapper(downloadedSound);
 
-                int longitudeOffset = 5 - i;
-                int lattitudeOffset = 5 - j;
-                GridSquare updatedSquare = centeralSquare.getSquareAtOffset(longitudeOffset, lattitudeOffset);
-                currentSoundGrid.get(i).get(j).setSoundWrapper(downloadedSound);
-                currentSoundGrid.get(i).get(j).setLocation(updatedSquare.getLocation());
+                currentSoundGrid.get(i).set(j, updatedSquare);
+
+                new DownloadFileAsync().execute(downloadedSound);
             }
         }
     }
 
     /** Adapted from code at http://stackoverflow.com/questions/13133498/how-to-download-mp3-file-in-android-from-a-url-and-save-it-in-sd-card-here-is **/
-    class DownloadFileAsync extends AsyncTask<SoundLocationWrapper, String, String> {
+    private class DownloadFileAsync extends AsyncTask<SoundLocationWrapper, String, Void> {
 
         @Override
-        protected String doInBackground(SoundLocationWrapper... soundLocationWrappers) {
+        protected Void doInBackground(SoundLocationWrapper... soundLocationWrappers) {
             int count;
             try {
                 SoundLocationWrapper wrapper = soundLocationWrappers[0];
@@ -269,6 +273,7 @@ public class SoundGridManager {
                 input.close();
             } catch (Exception e) {
                 //file may not exist, do I have to do anything special?
+                e.printStackTrace();
             }
             return null;
         }

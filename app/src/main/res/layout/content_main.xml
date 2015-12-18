@@ -13,10 +13,41 @@
     tools:showIn="@layout/activity_main">
 
     <TextView
+        android:id="@+id/relative_to_start_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="Position relative to start:"
+        android:textSize="50sp"
+        />
+
+    <TextView
         android:id="@+id/display_coordinates"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
+        android:layout_below="@id/relative_to_start_text"
+        android:textSize="50sp"
+        />
+
+    <TextView
+        android:id="@+id/display_accuracy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/display_coordinates"
+        android:textSize="50sp"
+        />
+
+    <TextView
+        android:id="@+id/accuracy_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/display_accuracy"
+        android:textSize="25sp"
+        android:text="Note: Updates will only occur when accuracy is less than  5.0"
+        android:textAlignment="center"
         />
 
     <!--

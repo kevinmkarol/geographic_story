@@ -1,6 +1,8 @@
 package com.sei.geographicstory;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.media.MediaRecorder;
 import android.media.SoundPool;
 import android.util.Log;
@@ -13,7 +15,7 @@ import java.util.List;
  * Created by Kevin on 12/16/15.
  */
 public class AudioManager {
-    private static final int MAX_SOUNDS = 1;
+    private static final int MAX_SOUNDS = 100;
 
     private SoundPool mSoundPool;
     private MediaRecorder mRecorder;
@@ -30,10 +32,20 @@ public class AudioManager {
 
     public void play(SoundLocationWrapper wrapper){
         Integer soundID = wrapper.getmSoundId();
-        if(soundID == null){
+        if(soundID == null){//wrapper.getSoundPlayed()){
             return;
         }
 
+        mSoundPool.play(soundID, 1.0f, 1.0f, 1, 0, 1.0f);
+        wrapper.setSoundPlayed(true);
+    }
+
+    public Integer loadAssetDescriptor(AssetFileDescriptor fd){
+        Integer soundID = mSoundPool.load(fd, 1);
+        return soundID;
+    }
+
+    public void playSoundID(Integer soundID){
         mSoundPool.play(soundID, 1.0f, 1.0f, 1, 0, 1.0f);
     }
 
@@ -66,6 +78,7 @@ public class AudioManager {
         }else{
             stopRecording();
             wrapper.setmSoundId(load(wrapper));
+            wrapper.setIsDirty(true);
         }
     }
 

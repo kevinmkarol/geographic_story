@@ -17,6 +17,7 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.sei.geographicstory.location.LocationMonitor;
+import com.sei.geographicstory.location.OffsetWrapper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
     //User Interface Objects
     private TextView mdisplayLocation;
+    private TextView mdisplayAccuracy;
     //private Button mplayRecordButton;
     //private Spinner mselectWordType;
 
@@ -40,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mdisplayLocation = (TextView) findViewById(R.id.display_coordinates);
+        mdisplayAccuracy = (TextView) findViewById(R.id.display_accuracy);
         //mplayRecordButton = (Button) findViewById(R.id.play_record_button);
         //mselectWordType = (Spinner) findViewById(R.id.wordType_spinner);
 
@@ -100,10 +103,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public void setDisplayLocation(Location l){
-        String displayText = Double.toString(l.getLatitude()) + Double.toString(l.getLongitude());
-        mdisplayLocation.setText(displayText);
+    public void updateLocationOffset(OffsetWrapper offset){
+        String locationText = Long.toString(offset.getLattitudeOffset()) + ", "
+                           + Long.toString(offset.getLongitudeOffset());
+        mdisplayLocation.setText(locationText);
+
     }
 
+    public void updateAccuracy(float accuracy){
+        String accuracyText = "Accuracy: " + Float.toString(accuracy);
+        mdisplayAccuracy.setText(accuracyText);
+    }
 
 }

@@ -18,6 +18,7 @@ import com.sei.geographicstory.SoundGridManager;
 public class LocationMonitor {
     private GoogleApiClient mClient;
     private GridSquare lastSquare = null;
+    private static final float MIN_ACCURACY = 100.0f;
 
     public LocationMonitor(final Context appContext){
         mClient = new GoogleApiClient.Builder(appContext)
@@ -36,7 +37,6 @@ public class LocationMonitor {
 
                 })
                 .build();
-
     }
 
     private void makeLocationRequest(){
@@ -50,12 +50,18 @@ public class LocationMonitor {
                     public void onLocationChanged(Location location) {
                         GridSquare currentSquare = new GridSquare();
                         currentSquare.setLocation(location);
-                        //if(!(lastSquare != null && lastSquare.isSameSquare(currentSquare))){
-                            ActionCoordinator.getInstance().updateLocationDisplay(location);
-                            lastSquare = currentSquare;
-                            SoundGridManager soundGridManager = SoundGridManager.getInstance();
-                            soundGridManager.performActionForLocation(currentSquare);
-                        //}
+
+                        float accuracy = location.getAccuracy();
+                        ActionCoordinator.getInstance().updateAccuracyDisplay(accuracy);
+
+                        if(!(lastSquare != null && lastSquare.isSameSquare(currentSquare))){
+                            if(accuracy < MIN_ACCURACY){
+                                ActionCoordinator.getInstance().updateLocationDisplay(currentSquare);
+                                lastSquare = currentSquare;
+                                SoundGridManager soundGridManager = SoundGridManager.getInstance();
+                                soundGridManager.performActionForLocation(currentSquare);
+                            }
+                        }
                     }
                 });
     }

@@ -1,35 +1,45 @@
 package com.sei.geographicstory.location;
 
 import android.location.Location;
-import android.util.Log;
 
 import com.sei.geographicstory.SoundLocationWrapper;
+
+import java.io.ObjectInputStream;
 
 /**
  * Created by Kevin on 12/16/15.
  */
 public class GridSquare {
-    private static final Double squarePrecision = 0.000001;
+    //private static final Double squarePrecision = 0.00001;
+    private static final Integer PRECISION_MULTIPLIER = 10000;
 
-    Location location;
+    private long mlatitude;
+    private long mlongitude;
+    //Location location;
     SoundLocationWrapper soundWrapper;
 
     public GridSquare(){
         soundWrapper = null;
-        location = new Location("System Generated");
+        mlongitude = 0;
+        mlatitude = 0;
+        //location = new Location("System Generated");
     }
 
-    public double getLatitude(){
-        return location.getLatitude();
+    public long getLatitude(){
+        return mlatitude;
     }
 
-    public double getLongitude(){
-        return location.getLongitude();
+    public long getLongitude(){
+        return mlongitude;
     }
 
-    public Location getLocation(){
+    public String getStringRepresentation(){
+        return Long.toString(mlatitude) + Long.toString(mlongitude);
+    }
+
+    /**public Location getLocation(){
         return location;
-    }
+    }**/
 
     public SoundLocationWrapper getSoundWrapper(){
         return soundWrapper;
@@ -39,17 +49,23 @@ public class GridSquare {
     }
 
     public void setLocation(Location l){
-        this.location = l;
+        mlatitude = (long) (l.getLatitude() * PRECISION_MULTIPLIER);
+        mlongitude = (long) (l.getLongitude() * PRECISION_MULTIPLIER);
+    }
+
+    public void setLocation(long lattitude, long longitude){
+        this.mlongitude = longitude;
+        this.mlatitude = lattitude;
     }
 
 
     public boolean isSameSquare(Object other){
         GridSquare compareTo = (GridSquare) other;
-        double longitudeDifference = Math.abs(compareTo.getLongitude() - location.getLongitude());
-        double lattitudeDifference = Math.abs(compareTo.getLatitude() - location.getLatitude());
+        long longitudeDifference = compareTo.getLongitude() - mlongitude;
+        long lattitudeDifference = compareTo.getLatitude() - mlatitude;
 
-        if(longitudeDifference > squarePrecision
-                || lattitudeDifference > squarePrecision){
+        if(longitudeDifference != 0
+                || lattitudeDifference != 0){
             return false;
         }
 
@@ -58,10 +74,16 @@ public class GridSquare {
 
     public GridSquare getSquareAtOffset(int longitudeOffset, int lattitudeOffset){
         GridSquare offsetSquare = new GridSquare();
-        Location l  = new Location("System Generated");
-        l.setLatitude(this.getLatitude() + (lattitudeOffset * squarePrecision));
-        l.setLongitude(this.getLongitude() + (longitudeOffset * squarePrecision));
-        offsetSquare.setLocation(l);
+        offsetSquare.setLocation(this.getLatitude() + lattitudeOffset, this.getLongitude() + longitudeOffset);
         return offsetSquare;
     }
+
+    public OffsetWrapper getSquareOffset(Object other){
+        GridSquare compareTo = (GridSquare) other;
+        long longitudeDifference = compareTo.getLongitude() - mlongitude;
+        long lattitudeDifference = compareTo.getLatitude() - mlatitude;
+
+        return new OffsetWrapper(lattitudeDifference, longitudeDifference);
+    }
+
 }
