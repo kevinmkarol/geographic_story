@@ -18,7 +18,7 @@ import com.sei.geographicstory.SoundGridManager;
 public class LocationMonitor {
     private GoogleApiClient mClient;
     private GridSquare lastSquare = null;
-    private static final float MIN_ACCURACY = 100.0f;
+    private static final float MIN_ACCURACY = 5.0f;
 
     public LocationMonitor(final Context appContext){
         mClient = new GoogleApiClient.Builder(appContext)

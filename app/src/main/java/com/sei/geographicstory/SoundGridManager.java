@@ -91,7 +91,7 @@ public class SoundGridManager {
                     Log.d("FileName", fileName);
             }
 
-            if(!possibleSoundFile.exists()){ //|| randomNum < oddsOfNewWord) {
+            if(!possibleSoundFile.exists() || randomNum < oddsOfNewWord) {
                 ActionCoordinator.getInstance().recordSoundForSquare(soundAtSquare);
             } else {
                 ActionCoordinator.getInstance().playSoundForSquare(soundAtSquare);
